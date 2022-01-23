@@ -1,6 +1,4 @@
 # to do list
-# 1. 표 안에 있는 데이터 모집
-# 2. 조회 버튼 에러 해결
 # 3. 수집한 데이터 -> 가공하기
 # 4. 데이터 프레임 정리
 # 5. mysql 연결 / 앱 데이터 베이스와 연결
@@ -17,7 +15,7 @@ from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support.ui import WebDriverWait
 from time import sleep
 import datetime
-
+import pandas as pd
 from urllib.request import urlopen
 import requests
 from bs4 import BeautifulSoup
@@ -28,6 +26,7 @@ options = Options()
 options.add_argument("--no-sandbox")
 options.add_argument("--disable-setuid-sandbox")
 options.add_argument("start-maximized")
+options.add_argument("--disable-software-rasterizer")
 driver = webdriver.Chrome(executable_path='C:\chromedriver', chrome_options=options)
 
 
@@ -41,7 +40,7 @@ URL = 'http://data.krx.co.kr/contents/MDC/MDI/mdiLoader/index.cmd?menuId=MDC0201
 driver.get(url=URL)
 sleep(3)
 
-def getVolumeData(corporation, num):
+def getVolumeData(corporation, num, data_list):
     # 검색창 입력
     driver.find_element_by_xpath('//*[@id="btnisuCd_finder_stkisu0_0"]').click()
     sleep(2)
@@ -51,12 +50,14 @@ def getVolumeData(corporation, num):
     sleep(2)
     driver.find_element_by_xpath('//*[@id="jsGrid__finder_stkisu0_0"]/tbody/tr[1]').click()
     driver.find_element_by_xpath('//*[@id="jsSearchButton"]').click()
-    # Data Crawling
-    Price = driver.find_element_by_xpath('//*[@id="isuInfoBind"]/table/tbody/tr[1]/td[1]')
-    Count = driver.find_element_by_xpath('//*[@id="isuInfoBind"]/table/tbody/tr[1]/td[2]')
-    Foreign_rate = driver.find_element_by_xpath('//*[@id="isuInfoBind"]/table/tbody/tr[4]/td[2]')
-    PER_PBR = driver.find_element_by_xpath('//*[@id="isuInfoBind"]/table/tbody/tr[5]/td[2]')
-    for i in [Price, Count, Foreign_rate, PER_PBR]:
+    # ----- Data Crawling -----
+    # driver.page_source -> 이용해서 데이터 수집해보기
+    Price = driver.find_element_by_xpath('//*[@id="isuInfoBind"]/table/tbody/tr[1]/td[1]').text
+    Count = driver.find_element_by_xpath('//*[@id="isuInfoBind"]/table/tbody/tr[1]/td[2]').text
+    Foreign_rate = driver.find_element_by_xpath('//*[@id="isuInfoBind"]/table/tbody/tr[4]/td[2]').text
+    PER_PBR = driver.find_element_by_xpath('//*[@id="isuInfoBind"]/table/tbody/tr[5]/td[2]').text
+    PER, PBR = PER_PBR.split('/')
+    for i in [Price, Count, Foreign_rate, PER, PBR]:
         data_list.append(i)
     # 이동
     sleep(1)
@@ -66,25 +67,34 @@ def getVolumeData(corporation, num):
     driver.find_element_by_xpath('//*[@id="jsMdiMenu"]/div[4]/ul/li[1]/ul/li[2]/div/div[1]/ul/li[2]/ul/li[3]/ul/li[2]/a').send_keys(Keys.ENTER)
     sleep(1)
     driver.find_element_by_xpath('//*[@id="MDCSTAT023_FORM"]/div[1]/div/table/tbody/tr[3]/td[1]/div/div/button[2]').send_keys(Keys.ENTER)
-    sleep(2)
-    #driver.find_element_by_id('jsSearchButton').click()     # 오류발생
-    # 거래내역 뽑기
-    # ////
+    driver.find_element_by_xpath('/html/body/div[2]/section[2]/section/section/div/div[2]/form/div[1]/div/a').click()
+    sleep(1)
+    # ----- 거래내역 뽑기 -----
+    html = driver.page_source
+    # pip install lxml
+    soup = BeautifulSoup(html, 'html.parser')
+    table_html = soup.find('table', {'class' : 'CI-GRID-BODY-TABLE'})
+    table_html = str(table_html)
+    table_df_list = pd.read_html(table_html)
+    table_df = table_df_list[0]
+    Corpor_count = table_df['순매수'][7]
+    Personal_count = table_df['순매수'][9]
+    Foreign_count = table_df['순매수'][10]
+    for i in [corporation, Corpor_count, Personal_count, Foreign_count]:
+        data_list.append(i)
     # 되돌아가기
     driver.find_element_by_xpath('//*[@id="jsMdiMenu"]/div[4]/ul/li[1]/ul/li[2]/div/div[1]/ul/li[2]/ul/li[2]/ul/li[3]/a').send_keys(Keys.ENTER)
 
+crawling_df = pd.DataFrame()
 data_list = []
 num = 0
 for i in ['삼성전자', '대한항공', 'LG전자']:
-    getVolumeData(i, num)
+    getVolumeData(i, num, data_list)
     num += 1
+    #data_df = pd.DataFrame(data_list, columns = ['Price', 'Count', 'Foreign_rate', 'PER', 'PBR', 'Corporation', 'Corpor_count', 'Personal_count', 'Foreign_count'])
+    #crawling_df = crawling_df.concat([crawling_df, data_df], axis = 1)
     print(data_list)
-    data_list=[]
 sleep(10)
 
 driver.quit()
-
-
-print(data_list)
-# step 2 - Naver finance
 

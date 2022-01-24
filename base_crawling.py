@@ -4,6 +4,7 @@
 # 5. mysql 연결 / 앱 데이터 베이스와 연결
 # 6. 매일 실행되도록 프로그래밍
 
+import re
 from selenium.webdriver.chrome.options import Options
 import selenium
 from selenium import webdriver
@@ -38,9 +39,11 @@ now = datetime.datetime.now()
 crawling_time = now.strftime('%Y/%m/%d')
 URL = 'http://data.krx.co.kr/contents/MDC/MDI/mdiLoader/index.cmd?menuId=MDC0201020203#'
 driver.get(url=URL)
-sleep(3)
+sleep(1)
 
-def getVolumeData(corporation, num, data_list):
+def getVolumeData(corporation, num):
+    now = datetime.datetime.now()
+    crawling_time = now.strftime('%Y%m%d')
     # 검색창 입력
     driver.find_element_by_xpath('//*[@id="btnisuCd_finder_stkisu0_0"]').click()
     sleep(2)
@@ -50,15 +53,15 @@ def getVolumeData(corporation, num, data_list):
     sleep(2)
     driver.find_element_by_xpath('//*[@id="jsGrid__finder_stkisu0_0"]/tbody/tr[1]').click()
     driver.find_element_by_xpath('//*[@id="jsSearchButton"]').click()
+    sleep(10)
     # ----- Data Crawling -----
-    # driver.page_source -> 이용해서 데이터 수집해보기
     Price = driver.find_element_by_xpath('//*[@id="isuInfoBind"]/table/tbody/tr[1]/td[1]').text
     Count = driver.find_element_by_xpath('//*[@id="isuInfoBind"]/table/tbody/tr[1]/td[2]').text
-    Foreign_rate = driver.find_element_by_xpath('//*[@id="isuInfoBind"]/table/tbody/tr[4]/td[2]').text
+    Foreign_rate = float(driver.find_element_by_xpath('//*[@id="isuInfoBind"]/table/tbody/tr[4]/td[2]').text)
     PER_PBR = driver.find_element_by_xpath('//*[@id="isuInfoBind"]/table/tbody/tr[5]/td[2]').text
     PER, PBR = PER_PBR.split('/')
-    for i in [Price, Count, Foreign_rate, PER, PBR]:
-        data_list.append(i)
+    Price = int(re.sub(r"[^a-zA-Z0-9]","", Price))
+    Count = int(re.sub(r"[^a-zA-Z0-9]","", Count))
     # 이동
     sleep(1)
     if num == 0:
@@ -66,10 +69,29 @@ def getVolumeData(corporation, num, data_list):
     sleep(1)
     driver.find_element_by_xpath('//*[@id="jsMdiMenu"]/div[4]/ul/li[1]/ul/li[2]/div/div[1]/ul/li[2]/ul/li[3]/ul/li[2]/a').send_keys(Keys.ENTER)
     sleep(1)
-    driver.find_element_by_xpath('//*[@id="MDCSTAT023_FORM"]/div[1]/div/table/tbody/tr[3]/td[1]/div/div/button[2]').send_keys(Keys.ENTER)
-    driver.find_element_by_xpath('/html/body/div[2]/section[2]/section/section/div/div[2]/form/div[1]/div/a').click()
-    sleep(1)
     # ----- 거래내역 뽑기 -----
+    # 검색창 입력
+    driver.find_element_by_xpath('/html/body/div[2]/section[2]/section/section/div/div[2]/form/div[1]/div/table/tbody/tr[2]/td/div/div/p/img').click()
+    sleep(2)
+    search_cor = driver.find_element_by_xpath('//*[@id="searchText__finder_stkisu0_1"]')
+    search_cor.clear()
+    search_cor.send_keys(corporation)
+    search_cor.send_keys(Keys.RETURN)
+    sleep(2)
+    driver.find_element_by_xpath('/html/body/div[2]/section[2]/section/section/div/div[2]/div[7]/div[2]/div/form/div[2]/a').click()
+    sleep(2)
+    driver.find_element_by_xpath('/html/body/div[2]/section[2]/section/section/div/div[2]/div[7]/div[2]/div/div/div/div/div/div/div[2]/table/tbody/tr[1]/td[2]').click()
+    sleep(2)
+    # 날짜 입력
+    start = driver.find_element_by_xpath('//*[@id="strtDd"]')
+    start.clear()
+    start.send_keys(crawling_time)
+    end = driver.find_element_by_xpath('//*[@id="endDd"]')
+    end.clear()
+    end.send_keys(crawling_time)
+    sleep(2)
+    driver.find_element_by_xpath('/html/body/div[2]/section[2]/section/section/div/div[2]/form/div[1]/div/a').click()
+    sleep(2)
     html = driver.page_source
     # pip install lxml
     soup = BeautifulSoup(html, 'html.parser')
@@ -80,21 +102,23 @@ def getVolumeData(corporation, num, data_list):
     Corpor_count = table_df['순매수'][7]
     Personal_count = table_df['순매수'][9]
     Foreign_count = table_df['순매수'][10]
-    for i in [corporation, Corpor_count, Personal_count, Foreign_count]:
-        data_list.append(i)
     # 되돌아가기
     driver.find_element_by_xpath('//*[@id="jsMdiMenu"]/div[4]/ul/li[1]/ul/li[2]/div/div[1]/ul/li[2]/ul/li[2]/ul/li[3]/a').send_keys(Keys.ENTER)
+    # fin
+    dic = {'Corporation': corporation, 'time': crawling_time, 'Price': Price, 'Count': Count,  'Foreign_rate': Foreign_rate, 
+    'PER': PER, 'PBR': PBR, 'Corpor_count': Corpor_count, 'Personal_count': Personal_count, 'Foreign_count': Foreign_count}
+    crawling_df = pd.DataFrame(dic, index=[num])
+    return crawling_df
 
-crawling_df = pd.DataFrame()
-data_list = []
+
+today_df = pd.DataFrame(columns = ['Corporation', 'time', 'Price', 'Count',  'Foreign_rate', 'PER', 'PBR', 'Corpor_count', 'Personal_count', 'Foreign_count'])
 num = 0
 for i in ['삼성전자', '대한항공', 'LG전자']:
-    getVolumeData(i, num, data_list)
+    crawling_df = getVolumeData(i, num)
     num += 1
-    #data_df = pd.DataFrame(data_list, columns = ['Price', 'Count', 'Foreign_rate', 'PER', 'PBR', 'Corporation', 'Corpor_count', 'Personal_count', 'Foreign_count'])
-    #crawling_df = crawling_df.concat([crawling_df, data_df], axis = 1)
-    print(data_list)
+    print(crawling_df)
+    today_df = pd.concat([today_df, crawling_df])
+print(today_df)
+
 sleep(10)
-
 driver.quit()
-

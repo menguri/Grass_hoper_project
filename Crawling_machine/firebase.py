@@ -27,6 +27,13 @@ def Count_storage(dic, corporation, time):
     dir = db.reference(f'Counting Data/{corporation}/{time}')  #기본 위치 지정
     dir.update(dic)
 
-# def Get_storage(corporation, time):
+def Check_data(corporation, time):
+    dir = db.reference(f'Counting Data/{corporation}/{time}')  #기본 위치 지정
+    check = dir.get()
+    check.tolist()
+    if len(check) > 0 :
+        return True
+    else:
+        return False
 
 

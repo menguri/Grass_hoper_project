@@ -1,5 +1,6 @@
 # to do list
 # 6. 매일 실행되도록 프로그래밍
+from msilib.schema import Class
 from firebase import Count_storage
 
 import re
@@ -20,28 +21,15 @@ import requests
 from bs4 import BeautifulSoup
 from html_table_parser import parser_functions as parser
 
-# 갑자기 안될 때는 크롬 버전이 달라서 그런 것이므로, 그에 맞는 driver 다운로드하면 된다.
-options = Options()
-options.add_argument("--no-sandbox")
-options.add_argument("--disable-setuid-sandbox")
-options.add_argument("start-maximized")
-options.add_argument("--disable-software-rasterizer")
-driver = webdriver.Chrome(executable_path='C:\chromedriver', chrome_options=options)
-
-
 # Every Day, Crawling investors trend
-# step 1 - KRX 정보시스템
+# step 1 - KRX 정보시스템  
 
-# 사이트 접속
-now = datetime.datetime.now()
-crawling_time = now.strftime('%Y/%m/%d')
-URL = 'http://data.krx.co.kr/contents/MDC/MDI/mdiLoader/index.cmd?menuId=MDC0201020203#'
-driver.get(url=URL)
-sleep(1)
-
-def getVolumeData(corporation, num):
+def getVolumeData(corporation, num, driver):
     now = datetime.datetime.now()
-    crawling_time = '20220124'
+    week = datetime.datetime.today().weekday()
+    if week == 5 or 6:
+        return print("Today is weekend. No Data.")
+    crawling_time = now.strftime('%Y%m%d') 
     # 검색창 입력
     driver.find_element_by_xpath('//*[@id="btnisuCd_finder_stkisu0_0"]').click()
     sleep(2)
@@ -115,17 +103,3 @@ def getVolumeData(corporation, num):
     }
     # crawling_df = pd.DataFrame(dic, index=[num])
     Count_storage(dic, corporation, crawling_time)
-    return dic
-
-
-# today_df = pd.DataFrame(columns = ['Corporation', 'time', 'Price', 'Count',  'Foreign_rate', 'PER', 'PBR', 'Corpor_count', 'Personal_count', 'Foreign_count'])
-num = 0
-for i in ['삼성전자', '대한항공', 'LG전자']:
-    crawling_df = getVolumeData(i, num)
-    num += 1
-    # print(crawling_df)
-    # today_df = pd.concat([today_df, crawling_df])
-# print(today_df)
-
-sleep(10)
-driver.quit()

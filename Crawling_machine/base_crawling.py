@@ -1,8 +1,6 @@
 # to do list
-# 3. 수집한 데이터 -> 가공하기
-# 4. 데이터 프레임 정리
-# 5. mysql 연결 / 앱 데이터 베이스와 연결
 # 6. 매일 실행되도록 프로그래밍
+from firebase import Count_storage
 
 import re
 from selenium.webdriver.chrome.options import Options
@@ -43,7 +41,7 @@ sleep(1)
 
 def getVolumeData(corporation, num):
     now = datetime.datetime.now()
-    crawling_time = now.strftime('%Y%m%d')
+    crawling_time = '20220124'
     # 검색창 입력
     driver.find_element_by_xpath('//*[@id="btnisuCd_finder_stkisu0_0"]').click()
     sleep(2)
@@ -57,11 +55,11 @@ def getVolumeData(corporation, num):
     # ----- Data Crawling -----
     Price = driver.find_element_by_xpath('//*[@id="isuInfoBind"]/table/tbody/tr[1]/td[1]').text
     Count = driver.find_element_by_xpath('//*[@id="isuInfoBind"]/table/tbody/tr[1]/td[2]').text
-    Foreign_rate = float(driver.find_element_by_xpath('//*[@id="isuInfoBind"]/table/tbody/tr[4]/td[2]').text)
+    Foreign_rate = driver.find_element_by_xpath('//*[@id="isuInfoBind"]/table/tbody/tr[4]/td[2]').text
     PER_PBR = driver.find_element_by_xpath('//*[@id="isuInfoBind"]/table/tbody/tr[5]/td[2]').text
     PER, PBR = PER_PBR.split('/')
-    Price = int(re.sub(r"[^a-zA-Z0-9]","", Price))
-    Count = int(re.sub(r"[^a-zA-Z0-9]","", Count))
+    # Price = int(re.sub(r"[^a-zA-Z0-9]","", Price))
+    # Count = int(re.sub(r"[^a-zA-Z0-9]","", Count))
     # 이동
     sleep(1)
     if num == 0:
@@ -91,7 +89,7 @@ def getVolumeData(corporation, num):
     end.send_keys(crawling_time)
     sleep(2)
     driver.find_element_by_xpath('/html/body/div[2]/section[2]/section/section/div/div[2]/form/div[1]/div/a').click()
-    sleep(2)
+    sleep(4)
     html = driver.page_source
     # pip install lxml
     soup = BeautifulSoup(html, 'html.parser')
@@ -99,26 +97,35 @@ def getVolumeData(corporation, num):
     table_html = str(table_html)
     table_df_list = pd.read_html(table_html)
     table_df = table_df_list[0]
-    Corpor_count = table_df['순매수'][7]
-    Personal_count = table_df['순매수'][9]
-    Foreign_count = table_df['순매수'][10]
+    Corpor_count = str(table_df['순매수'][7])
+    Personal_count = str(table_df['순매수'][9])
+    Foreign_count = str(table_df['순매수'][10])
     # 되돌아가기
     driver.find_element_by_xpath('//*[@id="jsMdiMenu"]/div[4]/ul/li[1]/ul/li[2]/div/div[1]/ul/li[2]/ul/li[2]/ul/li[3]/a').send_keys(Keys.ENTER)
     # fin
-    dic = {'Corporation': corporation, 'time': crawling_time, 'Price': Price, 'Count': Count,  'Foreign_rate': Foreign_rate, 
-    'PER': PER, 'PBR': PBR, 'Corpor_count': Corpor_count, 'Personal_count': Personal_count, 'Foreign_count': Foreign_count}
-    crawling_df = pd.DataFrame(dic, index=[num])
-    return crawling_df
+    dic = {
+        'Price': Price,
+        'Count': Count,
+        'Foreign_rate': Foreign_rate,
+        'PER': PER, 
+        'PBR': PBR, 
+        'Corpor_count': Corpor_count, 
+        'Personal_count': Personal_count, 
+        'Foreign_count': Foreign_count
+    }
+    # crawling_df = pd.DataFrame(dic, index=[num])
+    Count_storage(dic, corporation, crawling_time)
+    return dic
 
 
-today_df = pd.DataFrame(columns = ['Corporation', 'time', 'Price', 'Count',  'Foreign_rate', 'PER', 'PBR', 'Corpor_count', 'Personal_count', 'Foreign_count'])
+# today_df = pd.DataFrame(columns = ['Corporation', 'time', 'Price', 'Count',  'Foreign_rate', 'PER', 'PBR', 'Corpor_count', 'Personal_count', 'Foreign_count'])
 num = 0
 for i in ['삼성전자', '대한항공', 'LG전자']:
     crawling_df = getVolumeData(i, num)
     num += 1
-    print(crawling_df)
-    today_df = pd.concat([today_df, crawling_df])
-print(today_df)
+    # print(crawling_df)
+    # today_df = pd.concat([today_df, crawling_df])
+# print(today_df)
 
 sleep(10)
 driver.quit()

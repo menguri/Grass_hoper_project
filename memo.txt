@@ -1,0 +1,18 @@
+pip install Django
+django-admin startproject Antindicator
+
+MTV - [Model,  Template, View] <-> Browser <-> User
+Model: 데이터베이스
+Template: 사용자에게 보여지는 페이지
+View: 데이터베이스에 일을 시키는 작업
+
+python manage.py startapp indicator
+(1) view.py에 함수 만들기
+(2) indicator/urls.py 에 urlpatterns 입력하기
+(3) settings/urls.py 에 path 추가
+(4) model 작성
+(5) python manage.py makemigrations indicator
+(6) python manage.py migrate
+
+# firebase, Django 연결
+(7) pip install pyrebase

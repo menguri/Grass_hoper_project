@@ -1,10 +1,10 @@
-from base_crawling import getVolumeData
+from base_crawling import Daily_VolumeData, Period_VolumeData
 from firebase import Check_data
 from selenium.webdriver.chrome.options import Options
 import selenium
 from selenium import webdriver
 from time import sleep
-import datetime
+from datetime import datetime, timedelta
 
 # input 기업 입력
 cor = []
@@ -13,6 +13,14 @@ for i in range(0, int(corporation_num)):
     corporation = str(input(f"원하는 기업을 입력하세요 ({i+1}/{int(corporation_num)}) : "))
     cor.append(corporation)
 
+# time 선택
+start = str(input("시작 시점을 입력하세요. ex) 2021-08-01 : "))
+finish = str(input("종료 시점을 입력하세요. ex) 2021-08-01 : "))
+start_date = datetime.strptime(start, "%Y-%m-%d") 
+last_date = datetime.strptime(finish, "%Y-%m-%d") 
+
+# mode 선택
+mode = str(input("Daily or Period : "))
 
 # 갑자기 안될 때는 크롬 버전이 달라서 그런 것이므로, 그에 맞는 driver 다운로드하면 된다.
 options = webdriver.ChromeOptions()
@@ -25,11 +33,22 @@ driver = webdriver.Chrome(executable_path='C:\chromedriver', chrome_options=opti
 URL = 'http://data.krx.co.kr/contents/MDC/MDI/mdiLoader/index.cmd?menuId=MDC0201020203#'
 driver.get(url=URL)
 
-# crawling
-num = 0
+# Crawling 진행
 for i in cor:
-    sleep(1)
-    getVolumeData(i, num, driver)
-    num += 1
+    num = 0
+    start = start_date
+    last = last_date
+    while start <= last: 
+        dates = start.strftime("%Y%m%d") 
+        time = [int(dates[0:4]), int(dates[4:6]), int(dates[6:8])]
+        start += timedelta(days=1)
+        if mode == 'Period':
+            Period_VolumeData(i, num, driver, time, dates)
+        else:
+            Daily_VolumeData(i, num, driver, time, dates)
+        num += 1
 sleep(10)
 driver.quit()
+
+
+#   PER, 외국인 표에서 자꾸 다른 기업들이 모두 뜬다. 해결 방법 찾을 것.

@@ -88,5 +88,9 @@ PER = str(table_df['PER'][0])
 PBR = str(table_df['PBR'][0])
 Price = str(table_df['종가'][0])
 
-
+driver.close()
+sleep(5)
+driver = webdriver.Chrome(executable_path='C:\chromedriver', chrome_options=options)
+URL = 'http://data.krx.co.kr/contents/MDC/MDI/mdiLoader/index.cmd?menuId=MDC0201020203#'
+driver.get(url=URL)
 # driver.quit()

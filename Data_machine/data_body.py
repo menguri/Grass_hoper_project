@@ -1,5 +1,5 @@
 from turtle import pd
-from base_crawling import crawling_corporation
+from crawling_base import crawling_corporation
 from firebase import Check_data
 from selenium.webdriver.chrome.options import Options
 import selenium
@@ -9,7 +9,6 @@ from datetime import datetime, timedelta, date
 import pandas as pd
 from firebase import Count_storage
 import time
-import datetime
 import math
 
 # input 기업 입력
@@ -25,6 +24,10 @@ finish = str(input("종료 시점을 입력하세요. ex) 2021-08-01 : "))
 start_date = datetime.strptime(start, "%Y-%m-%d") 
 last_date = datetime.strptime(finish, "%Y-%m-%d") 
 
+
+
+# -------------------------------------------------------------------- Crawling 진행 --------------------------------------------------------------------
+
 # 갑자기 안될 때는 크롬 버전이 달라서 그런 것이므로, 그에 맞는 driver 다운로드하면 된다.
 options = webdriver.ChromeOptions()
 options.add_experimental_option('excludeSwitches', ['enable-logging'])
@@ -38,9 +41,6 @@ options.add_argument("disable-gpu")
 driver = webdriver.Chrome(executable_path='C:\chromedriver.exe', chrome_options=options)
 URL = 'http://data.krx.co.kr/contents/MDC/MDI/mdiLoader/index.cmd?menuId=MDC0201020203#'
 
-
-
-# Crawling 진행
 # 시간 측정
 start_time = time.time() 
 math.factorial(1234567) 
@@ -93,12 +93,16 @@ for corporation in cor:
         time = row_dict['Date']
         Count_storage(row_dict, corporation, time)
 # 코드 종료
+import time
+import datetime
 end_time = time.time()
 sec = (end_time - start_time) 
 result = datetime.timedelta(seconds=sec) 
-print(f'Start Time : {start_time}')
-print(f'End Time : {end_time}')
+print(f'Corporation : {cor}')
+print(f'Period : {start_date} -- {last_date}')
 print(f"Running Time : {result}")
+import datetime
+print(f'Now : {datetime.datetime.now()}')
 
 sleep(10)
 driver.quit()

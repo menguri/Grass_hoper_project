@@ -27,6 +27,11 @@ def Count_storage(dic, corporation, time):
     dir = db.reference(f'Counting Data/{corporation}/{time}')  #기본 위치 지정
     dir.update(dic)
 
+def get_data(corporation):
+    dir = db.reference(f'Counting Data/{corporation}')
+    data = dir.get()
+    return data
+
 def Check_data(corporation, time):
     dir = db.reference(f'Counting Data/{corporation}/{time}')  #기본 위치 지정
     check = dir.get()

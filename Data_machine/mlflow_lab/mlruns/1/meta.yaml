@@ -1,0 +1,4 @@
+artifact_location: file:///C:/ant_indicator/Data_machine/mlruns/1
+experiment_id: '1'
+lifecycle_stage: active
+name: /Shared/diabetes_experiment/
